@@ -13,29 +13,24 @@ class GeminiAgent(autogen.ConversableAgent):
         genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
         self.model = genai.GenerativeModel('gemini-1.5-flash')
         self.system_msg = system_message
-    
+
     def generate_reply(self, messages=None, sender=None, config=None):
         prompt = f"{self.system_msg}\n\nReturn ONLY valid JSON."
         response = self.model.generate_content(prompt)
         return response.text
 
 def extract_json(text):
-    """Extract JSON from text response"""
-    # Try to find JSON in code blocks
     json_match = re.search(r'```json\s*({.*?})\s*```', text, re.DOTALL)
     if json_match:
         return json_match.group(1)
-    # Try to find any JSON object
     json_match = re.search(r'({[^{}]*(?:{[^{}]*}[^{}]*)*})', text, re.DOTALL)
     if json_match:
         return json_match.group(1)
-    # If no JSON found, create basic structure
     if "function" in text.lower() or "def" in text.lower():
         return '{"symbols": [{"name": "extracted_function", "type": "function", "scope": "global"}]}'
     return '{"data": "no_json_found"}'
 
 def main():
-    # Get code from user
     print("Enter your code (press Enter twice to finish):")
     lines = []
     while True:
@@ -46,28 +41,24 @@ def main():
             lines.append(line)
         except EOFError:
             break
-    
+
     code = "\n".join(lines[:-1]) if lines else "print('hello')"
     language = (input("Enter language (default: python): ") or "python").strip()
-    
-    # Create specialized agents with actual code
+
     ast_agent = GeminiAgent("AST_Parser", f"Parse this {language} code into AST: {code}. Return JSON: {{\"ast\": {{\"type\": \"Module\", \"children\": [{{\"type\": \"Assign\", \"target\": \"x\", \"value\": \"10\"}}]}}}}")
-    symbol_agent = GeminiAgent("Symbol_Analyzer", f"Extract symbols from: {code}. Return JSON: {{\"symbols\": [{{\"name\": \"x\", \"type\": \"variable\", \"scope\": \"global\"}}]}}")
-    flow_agent = GeminiAgent("Flow_Analyzer", f"Analyze flow in: {code}. Return JSON: {{\"control_flow\": [{{\"source\": \"line1\", \"target\": \"line2\"}}], \"data_flow\": [{{\"variable\": \"x\", \"from\": \"assign\", \"to\": \"print\"}}]}}")
-    
+    symbol_agent = GeminiAgent("Symbol_Analyzer", f"Extract all declared and used symbols in this {language} code: {code}. Include their type and scope. Return JSON: {{\"symbols\": [{{\"name\": \"a\", \"type\": \"variable\", \"scope\": \"global\"}}]}}")
+    flow_agent = GeminiAgent("Flow_Analyzer", f"Analyze control and data flow in this {language} code: {code}. Return JSON: {{\"control_flow\": [{{\"source\": \"line1\", \"target\": \"line2\"}}], \"data_flow\": [{{\"variable\": \"x\", \"from\": \"assign\", \"to\": \"print\"}}]}}")
+
     user = autogen.UserProxyAgent("User", human_input_mode="NEVER", code_execution_config=False)
-    
-    # Group chat setup
+
     agents = [user, ast_agent, symbol_agent, flow_agent]
     group_chat = autogen.GroupChat(agents=agents, messages=[], max_round=4)
     manager = autogen.GroupChatManager(groupchat=group_chat, llm_config=False)
-    
-    # Analyze code
+
     user.initiate_chat(manager, message=f"Analyze this {language} code:\n```{language}\n{code}\n```")
-    
-    # Build IR JSON
+
     ir_data = {"language": language, "ast": {}, "symbols": [], "control_flow": [], "data_flow": []}
-    
+
     for msg in group_chat.messages:
         if msg["name"] == "AST_Parser":
             try:
@@ -98,13 +89,32 @@ def main():
                 print(f"Flow parsing failed: {e}")
                 ir_data["control_flow"] = [{"source": "ParseError", "target": "ParseError"}]
                 ir_data["data_flow"] = [{"variable": "ParseError", "from": "unknown", "to": "unknown"}]
-    
-    # Save to JSON file
-    with open("code_analysis_ir.json", "w") as f:
+
+    with open("code_analysis_ir.json", "w", encoding="utf-8") as f:
         json.dump(ir_data, f, indent=2)
-    
+
+    with open("code_analysis_summary.txt", "w", encoding="utf-8") as f:
+        f.write(f"## Code Analysis of:\n\n```{language}\n{code}\n```\n\n")
+        f.write("**1. Symbol Table:**\n\n")
+        f.write("| Symbol | Scope | Type |\n|--------|--------|--------|\n")
+        for sym in ir_data["symbols"]:
+            f.write(f"| {sym.get('name', '')} | {sym.get('scope', '')} | {sym.get('type', '')} |\n")
+
+        f.write("\n**2. Control Flow Graph (CFG):**\n\n")
+        for flow in ir_data["control_flow"]:
+            f.write(f"- {flow.get('source', '')} --> {flow.get('target', '')}\n")
+
+        f.write("\n**3. Data Flow Graph (DFG):**\n\n")
+        for dfg in ir_data["data_flow"]:
+            if "variable" in dfg:
+                f.write(f"- {dfg['variable']} ({dfg['from']} --> {dfg['to']})\n")
+            elif "expression" in dfg:
+                f.write(f"- {dfg['expression']} ({dfg['from']} --> {dfg['to']})\n")
+
     print("\nLanguage-neutral IR saved to code_analysis_ir.json")
+    print("Human-readable analysis saved to code_analysis_summary.txt")
     print(json.dumps(ir_data, indent=2))
 
 if __name__ == "__main__":
     main()
+    
