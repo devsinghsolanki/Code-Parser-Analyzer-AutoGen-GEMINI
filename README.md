@@ -1,8 +1,6 @@
 # Code-Parser-Analyzer-AutoGen-GEMINI
 Code Parser &amp; Analyzer using Microsoft AutoGen &amp; Gemini API Key
 
-# Code-Parser-Analyzer-AutoGen-GEMINI
-Code Parser & Analyzer using Microsoft AutoGen & Gemini API Key
 
 # Code Parser & Analyzer
 
