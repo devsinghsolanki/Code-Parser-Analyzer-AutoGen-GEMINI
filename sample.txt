@@ -1,0 +1,94 @@
+### Sample 1: Python - Simple Arithmetic
+a = 5
+b = 3
+print(a + b)
+
+---
+
+### Sample 2: Python - Function with Return
+def greet(name):
+    return "Hello " + name
+print(greet("Alice"))
+
+---
+
+### Sample 3: Python - List and Loop
+numbers = [1, 2, 3]
+for n in numbers:
+    print(n)
+
+---
+
+### Sample 4: Java - Hello World
+public class HelloWorld {
+    public static void main(String[] args) {
+        System.out.println("Hello, World");
+    }
+}
+
+---
+
+### Sample 5: Java - Method and Loop
+public class Sum {
+    public static void main(String[] args) {
+        int sum = 0;
+        for (int i = 1; i <= 5; i++) {
+            sum += i;
+        }
+        System.out.println(sum);
+    }
+}
+
+---
+
+### Sample 6: C - Simple Function
+int add(int x, int y) {
+    return x + y;
+}
+
+---
+
+### Sample 7: C - Main with Loop
+#include <stdio.h>
+
+int main() {
+    for(int i = 0; i < 3; i++) {
+        printf("%d\n", i);
+    }
+    return 0;
+}
+
+---
+
+### Sample 8: JavaScript - Function and Console Log
+function multiply(a, b) {
+    return a * b;
+}
+console.log(multiply(2, 3));
+
+---
+
+### Sample 9: JavaScript - Array Loop
+let fruits = ["apple", "banana", "cherry"];
+for (let fruit of fruits) {
+    console.log(fruit);
+}
+
+---
+
+### Sample 10: C++ - Class Example
+#include <iostream>
+using namespace std;
+
+class Person {
+public:
+    string name;
+    Person(string n) { name = n; }
+    void greet() { cout << "Hello, " << name << endl; }
+};
+
+int main() {
+    Person p("John");
+    p.greet();
+    return 0;
+}
