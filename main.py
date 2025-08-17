@@ -24,12 +24,12 @@ class GeminiAgent(autogen.ConversableAgent):
         return response.text
 
 def extract_json(text):
-    # First try extracting JSON inside triple backticks labeled json
-    triple_backtick_match = re.search(r"``````", text, re.DOTALL)
+    # Fix: correctly capture JSON inside ```json ... ```
+    triple_backtick_match = re.search(r"```json\s*(\{.*?\})\s*```", text, re.DOTALL)
     if triple_backtick_match:
         return triple_backtick_match.group(1)
 
-    # Fallback: extract first balanced JSON object without recursion
+    # Fallback: extract first balanced JSON object
     brace_pos = text.find('{')
     if brace_pos == -1:
         return None
@@ -77,7 +77,10 @@ def main():
         "Return the data as valid JSON enclosed in triple backticks labeled json."
     )
     flow_prompt = (
-        f"Perform control and data flow analysis on this {language} code. Return control flow graph (CFG) and data flow graph (DFG) info as valid JSON enclosed in triple backticks labeled json."
+        f"Perform control and data flow analysis on this {language} code. "
+        "Return JSON with two top-level keys: 'control_flow' (list of objects with source,target) "
+        "and 'data_flow' (list of objects with variable, from, to). "
+        "Wrap the JSON in triple backticks labeled json."
     )
 
     ast_agent = GeminiAgent("AST_Parser", ast_prompt)
